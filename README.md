@@ -1,4 +1,4 @@
-# Appliance Energy Profiler ⚡ (CSE407 Midterm Project)
+# Appliance Energy Profiler ⚡
 
 An interactive, real-time energy profiling dashboard for home appliances (specifically tested with a Deep Freezer). This project was built for **CSE407 (Green Computing)** to monitor instantaneous power draw, cumulative energy usage (kWh), operating costs, and device switch control using the **Tuya Smart Home Cloud API** and **MongoDB Atlas**.
 
