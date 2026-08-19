@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Freezer Energy Profiler | CSE407</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .card { background-color: #1e293b; border-radius: 0.5rem; padding: 1.5rem; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .sub-card { background-color: #0f172a; border-radius: 0.375rem; padding: 1rem; border: 1px solid #334155; }
+    </style>
+</head>
+<body class="p-4 md:p-8 font-sans">
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <!-- Top Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-emerald-400">Appliance Energy Profiler</h1>
+                <p class="text-slate-400 text-sm mt-1">CSE407 Green Computing - Midterm Project</p>
+            </div>
+            <div class="flex gap-4 mt-4 md:mt-0">
+                <!-- Dynamic API Badge -->
+                <div id="apiBadge" class="bg-red-900/50 text-red-400 px-4 py-2 rounded-md border border-red-700 text-sm flex items-center transition-colors duration-300">
+                    <span id="apiDot" class="w-2 h-2 bg-red-400 rounded-full mr-2"></span>
+                    <span id="apiText">Connecting...</span>
+                </div>
+                <button class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-md text-sm transition">User Manual (PDF)</button>
+            </div>
+        </header>
+
+        <!-- Controls & Live Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold mb-4 text-white border-b border-slate-600 pb-2">Load Control</h2>
+                    <p class="text-sm text-slate-400 mb-2">Target Device: <span class="text-white font-mono">Deep Freezer</span></p>
+                    <div class="mt-6 flex justify-center">
+                        <button id="toggleBtn" onclick="toggleDevice()" class="w-32 h-32 rounded-full border-4 border-slate-600 bg-slate-800 text-xl font-bold transition-all shadow-lg flex items-center justify-center">
+                            <span id="powerState">OFF</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <label class="text-xs text-slate-400 uppercase tracking-wider block mb-1">Electricity Rate (BDT/kWh)</label>
+                    <div class="flex items-center">
+                        <span class="bg-slate-700 px-3 py-2 rounded-l-md border border-slate-600 border-r-0">৳</span>
+                        <input type="number" id="rateInput" value="9.50" class="bg-slate-800 border border-slate-600 rounded-r-md px-3 py-2 w-full focus:outline-none focus:border-emerald-500 text-white">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card md:col-span-2 grid grid-cols-2 gap-4">
+                <div class="sub-card">
+                    <p class="text-xs text-slate-400 uppercase">Instantaneous Power</p>
+                    <p class="text-3xl font-bold text-white mt-2" id="livePower">0 <span class="text-lg text-slate-500">W</span></p>
+                </div>
+                <div class="sub-card">
+                    <p class="text-xs text-slate-400 uppercase">Voltage</p>
+                    <p class="text-3xl font-bold text-white mt-2" id="liveVoltage">0 <span class="text-lg text-slate-500">V</span></p>
+                </div>
+                <div class="sub-card">
+                    <p class="text-xs text-slate-400 uppercase">Current</p>
+                    <p class="text-3xl font-bold text-white mt-2" id="liveCurrent">0.0 <span class="text-lg text-slate-500">A</span></p>
+                </div>
+                <div class="sub-card">
+                    <p class="text-xs text-slate-400 uppercase">Hourly Operating Cost</p>
+                    <p class="text-3xl font-bold text-emerald-400 mt-2" id="hourlyCost">৳ 0.00</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-Time Trend Chart -->
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4 text-white">Power Draw Trend (Real-time)</h2>
+            <div class="h-64"><canvas id="powerChart"></canvas></div>
+        </div>
+
+        <!-- Energy Usage Trend - BAR CHART -->
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4 text-white">Energy Usage Trend</h2>
+            <div class="h-64">
+                <canvas id="energyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Insights Row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card flex flex-col justify-center">
+                <p class="text-sm text-slate-400 mb-1">Efficiency Score</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-5xl font-bold text-white" id="effScore">100</span>
+                    <span class="text-emerald-400 font-semibold" id="effStatus">Excellent</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <p class="text-sm text-slate-400 mb-4 border-b border-slate-600 pb-2">Cost Insights</p>
+                <div class="flex justify-between mb-2">
+                    <span class="text-slate-300 text-sm">Today vs Yesterday</span>
+                    <span class="text-white text-sm">No previous data</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-300 text-sm">Monthly Projection</span>
+                    <span class="text-emerald-400 font-bold" id="monthlyProj">৳ 0.00</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <p class="text-sm text-slate-400 mb-4 border-b border-slate-600 pb-2">Smart Tips</p>
+                <p class="text-sm text-emerald-400 flex items-start gap-2 mb-2">
+                    <span>✓</span> No immediate energy saving opportunities identified.
+                </p>
+                <p class="text-xs text-slate-500">
+                    0 Active Tips<br>
+                    Current Status: Normal Operation (<span id="tipPower">0</span>W)
+                </p>
+            </div>
+        </div>
+
+        <!-- Usage Analysis -->
+        <div class="card grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-slate-400 mb-2">Peak Usage Times</p>
+                <p class="text-emerald-400 text-sm font-semibold">Normal usage pattern</p>
+            </div>
+            <div>
+                <p class="text-sm text-slate-400 mb-2">Standby Power Detection</p>
+                <p class="text-emerald-400 text-sm font-semibold">Normal standby power</p>
+            </div>
+        </div>
+
+        <!-- Bottom Analytics Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Summary Table -->
+            <div class="card flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center border-b border-slate-600 pb-4 mb-4">
+                        <h2 class="text-lg font-semibold text-white">Summary</h2>
+                        <select class="bg-slate-800 border border-slate-600 text-sm text-white rounded px-2 py-1">
+                            <option>Today</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-4 text-sm">
+                        <div class="flex justify-between border-b border-slate-700 pb-2">
+                            <span class="text-slate-400">Peak Usage</span>
+                            <span class="text-white font-bold" id="sumPeak">0.0 W</span>
+                        </div>
+
+                        <div class="flex justify-between border-b border-slate-700 pb-2">
+                            <span class="text-slate-400">Average Usage</span>
+                            <span class="text-white font-bold" id="sumAvg">0.0 W</span>
+                        </div>
+
+                        <div class="flex justify-between border-b border-slate-700 pb-2">
+                            <span class="text-slate-400">Total Energy</span>
+                            <span class="text-white font-bold" id="sumEnergy">0.000 kWh</span>
+                        </div>
+
+                        <div class="flex justify-between border-b border-slate-700 pb-2">
+                            <span class="text-slate-400">Total Cost</span>
+                            <span class="text-white font-bold" id="sumCostTotal">৳ 0.00</span>
+                        </div>
+
+                        <div class="flex justify-between border-b border-slate-700 pb-2">
+                            <span class="text-slate-400">Today's Cost</span>
+                            <span class="text-white font-bold" id="sumCostToday">৳ 0.00</span>
+                        </div>
+
+                        <div class="flex justify-between pb-2">
+                            <span class="text-slate-400">This Week's Cost</span>
+                            <span class="text-white font-bold" id="sumCostWeek">৳ 0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Buttons -->
+                <div class="flex justify-end gap-3 mt-6 border-t border-slate-700 pt-4">
+                    <button onclick="exportCSV()" class="bg-slate-200 hover:bg-white text-slate-900 px-4 py-2 rounded text-sm font-bold transition">
+                        Export CSV
+                    </button>
+
+                    <button onclick="exportJSON()" class="bg-slate-900 hover:bg-black border border-slate-700 text-white px-4 py-2 rounded text-sm font-bold transition">
+                        Export JSON
+                    </button>
+                </div>
+            </div>
+
+            <!-- Usage Patterns Bar Chart -->
+            <div class="card">
+                <h2 class="text-lg font-semibold mb-4 text-white border-b border-slate-600 pb-2">
+                    Usage Patterns
+                </h2>
+
+                <div class="h-48 mb-4">
+                    <canvas id="barChart"></canvas>
+                </div>
+
+                <p class="text-sm text-slate-400 mt-4">
+                    Peak Usage Hours:
+                    <span class="text-white" id="peakHourText">Gathering data...</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Main Trend Chart (line)
+        const ctx = document.getElementById('powerChart').getContext('2d');
+        const powerChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Active Power (W)', data: [], borderColor: '#34d399', backgroundColor: 'rgba(52, 211, 153, 0.1)', borderWidth: 2, fill: true, tension: 0.4 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8' } } }, plugins: { legend: { display: false } }, animation: { duration: 0 } }
+        });
+
+        // Energy Usage Trend - BAR CHART
+        const energyCtx = document.getElementById('energyChart').getContext('2d');
+        const energyChart = new Chart(energyCtx, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: 'Energy Consumption (kWh)', data: [], backgroundColor: 'rgba(59, 130, 246, 0.75)', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 3 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Energy (kWh)', color: '#94a3b8' }, grid: { color: '#334155' }, ticks: { color: '#94a3b8', callback: function(value) { return value.toFixed(5); } } },
+                    x: { title: { display: true, text: 'Time', color: '#94a3b8' }, grid: { display: false }, ticks: { color: '#94a3b8', maxRotation: 45, minRotation: 45 } }
+                },
+                plugins: { legend: { display: true, labels: { color: '#94a3b8' } }, tooltip: { callbacks: { label: function(context) { return ` Energy: ${Number(context.raw).toFixed(5)} kWh`; } } } },
+                animation: { duration: 0 }
+            }
+        });
+
+        // Bar Chart (Usage Patterns)
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        const barChart = new Chart(barCtx, {
+            type: 'bar',
+            data: { labels: ['0:00', '4:00', '8:00', '12:00', '16:00', '20:00'], datasets: [{ label: 'Average Power (W)', data: [0, 0, 0, 0, 0, 0], backgroundColor: 'rgba(99, 102, 241, 0.2)', borderColor: '#6366f1', borderWidth: 1 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8' } } }, plugins: { legend: { display: false } } }
+        });
+
+        // Application State
+        let isSwitchOn = false;
+        let sessionData = [];
+        let maxPower = 0;
+        let totalPowerSum = 0;
+        let readingCount = 0;
+        let cumulativeEnergyKwh = 0;
+
+        // Dynamic API Badge Function
+        function updateApiBadge(isConnected) {
+            const badge = document.getElementById('apiBadge');
+            const dot = document.getElementById('apiDot');
+            const text = document.getElementById('apiText');
+            if (isConnected) {
+                badge.className = "bg-emerald-900/50 text-emerald-400 px-4 py-2 rounded-md border border-emerald-700 text-sm flex items-center transition-colors duration-300";
+                dot.className = "w-2 h-2 bg-emerald-400 rounded-full mr-2 animate-pulse";
+                text.innerText = "API Connected";
+            } else {
+                badge.className = "bg-red-900/50 text-red-400 px-4 py-2 rounded-md border border-red-700 text-sm flex items-center transition-colors duration-300";
+                dot.className = "w-2 h-2 bg-red-400 rounded-full mr-2";
+                text.innerText = "API Disconnected";
+            }
+        }
+
+        // Fetch Device Status
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                if(data.success && data.result) {
+                    updateApiBadge(true);
+                    let power = 0, voltage = 0, current = 0;
+                    data.result.forEach(item => {
+                        if(item.code === 'switch_1') { isSwitchOn = item.value; updateBtnUI(); }
+                        if(item.code === 'cur_power') power = item.value / 10;
+                        if(item.code === 'cur_voltage') voltage = item.value / 10;
+                        if(item.code === 'cur_current') current = item.value / 1000;
+                    });
+                    updateDashboard(power, voltage, current);
+                } else { updateApiBadge(false); }
+            } catch (error) { console.error("API Error", error); updateApiBadge(false); }
+        }
+
+        // Update Dashboard
+        function updateDashboard(power, voltage, current) {
+            const timeStr = new Date().toLocaleTimeString();
+            const rate = parseFloat(document.getElementById('rateInput').value) || 9.5;
+
+            // Analytics Math
+            if(power > maxPower) maxPower = power;
+            totalPowerSum += power;
+            readingCount++;
+            const avgPower = totalPowerSum / readingCount;
+            cumulativeEnergyKwh += (power / 1000) * (3 / 3600);
+            const currentCost = cumulativeEnergyKwh * rate;
+            const hourlyCostCalc = (power / 1000) * rate;
+
+            // Update Metrics
+            document.getElementById('livePower').innerHTML = `${power} <span class="text-lg text-slate-500">W</span>`;
+            document.getElementById('liveVoltage').innerHTML = `${voltage} <span class="text-lg text-slate-500">V</span>`;
+            document.getElementById('liveCurrent').innerHTML = `${current.toFixed(2)} <span class="text-lg text-slate-500">A</span>`;
+            document.getElementById('hourlyCost').innerText = `৳ ${hourlyCostCalc.toFixed(3)}/hr`;
+            document.getElementById('tipPower').innerText = power;
+            document.getElementById('monthlyProj').innerText = `৳ ${(hourlyCostCalc * 24 * 30).toFixed(2)}`;
+
+            // Efficiency
+            if(power > 0 && power < 50) {
+                document.getElementById('effScore').innerText = '85';
+                document.getElementById('effStatus').innerText = 'Warning';
+                document.getElementById('effStatus').className = 'text-yellow-500 font-semibold';
+            } else {
+                document.getElementById('effScore').innerText = '100';
+                document.getElementById('effStatus').innerText = 'Excellent';
+                document.getElementById('effStatus').className = 'text-emerald-400 font-semibold';
+            }
+
+            // Summary
+            document.getElementById('sumPeak').innerText = `${maxPower.toFixed(1)} W`;
+            document.getElementById('sumAvg').innerText = `${avgPower.toFixed(1)} W`;
+            document.getElementById('sumEnergy').innerText = `${cumulativeEnergyKwh.toFixed(4)} kWh`;
+            document.getElementById('sumCostTotal').innerText = `৳ ${currentCost.toFixed(2)}`;
+            document.getElementById('sumCostToday').innerText = `৳ ${currentCost.toFixed(2)}`;
+            document.getElementById('sumCostWeek').innerText = `৳ ${(currentCost * 7).toFixed(2)}`;
+
+            // Power Chart (line)
+            if(powerChart.data.labels.length > 20) { powerChart.data.labels.shift(); powerChart.data.datasets[0].data.shift(); }
+            powerChart.data.labels.push(timeStr);
+            powerChart.data.datasets[0].data.push(power);
+            powerChart.update();
+
+            // Energy Usage Trend - BAR CHART update
+            if(energyChart.data.labels.length > 20) { energyChart.data.labels.shift(); energyChart.data.datasets[0].data.shift(); }
+            energyChart.data.labels.push(timeStr);
+            energyChart.data.datasets[0].data.push(Number(cumulativeEnergyKwh.toFixed(5)));
+            energyChart.update();
+
+            // Usage Pattern Bar Chart
+            const currentHourIndex = new Date().getHours() % 6;
+            barChart.data.datasets[0].data[currentHourIndex] = avgPower;
+            barChart.update();
+            document.getElementById('peakHourText').innerText = `Current block (${timeStr})`;
+
+            // Session Data
+            sessionData.push({ Time: timeStr, Voltage: voltage, Current: current, Power: power, Total_kWh: cumulativeEnergyKwh.toFixed(5) });
+        }
+
+        // Toggle Device
+        async function toggleDevice() {
+            const newState = !isSwitchOn;
+            try {
+                await fetch('/api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: 'switch_1', value: newState }) });
+                isSwitchOn = newState; updateBtnUI();
+            } catch (error) { alert("Command failed. Ensure Backend is running."); }
+        }
+
+        // Update Power Button UI
+        function updateBtnUI() {
+            const btn = document.getElementById('toggleBtn');
+            const txt = document.getElementById('powerState');
+            if(isSwitchOn) {
+                btn.classList.add('border-emerald-500', 'text-emerald-400');
+                btn.classList.remove('border-slate-600', 'text-white', 'text-red-400');
+                txt.innerText = 'ON';
+            } else {
+                btn.classList.add('border-red-500', 'text-red-400');
+                btn.classList.remove('border-emerald-500', 'text-emerald-400');
+                txt.innerText = 'OFF';
+            }
+        }
+
+        // Export JSON
+        function exportJSON() {
+            if(sessionData.length === 0) return alert("No data gathered yet.");
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sessionData, null, 2));
+            const a = document.createElement('a'); a.href = dataStr; a.download = "energy_log.json"; a.click();
+        }
+
+        // Export CSV
+        function exportCSV() {
+            if(sessionData.length === 0) return alert("No data gathered yet.");
+            const rows = ["Time,Voltage,Current,Power,Total_kWh"];
+            sessionData.forEach(r => { rows.push(`${r.Time},${r.Voltage},${r.Current},${r.Power},${r.Total_kWh}`); });
+            const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = 'energy_log.csv'; a.click();
+        }
+
+        // Start Monitoring
+        setInterval(fetchStatus, 3000);
+        fetchStatus();
+    </script>
+</body>
+</html>

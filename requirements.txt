@@ -1,0 +1,23 @@
+========================================================================
+Appliance Energy Profiler - Prerequisites & Project Requirements
+========================================================================
+
+System Prerequisites:
+---------------------
+- Runtime: Node.js (version 16.0.0 or higher recommended)
+- Package Manager: npm (comes bundled with Node.js)
+- Platform: Windows (for .bat script execution), Linux/macOS (via terminal commands)
+
+Network & Credentials Requirements:
+-----------------------------------
+- Active Internet Connection: Required to query the Tuya Smart Home Cloud API 
+  and log energy metrics to MongoDB Atlas.
+- Credentials Config: A properly configured '.env' file in the root directory.
+
+Node.js Package Dependencies:
+-----------------------------
+- express (5.2.1): Backend routing and static web serving
+- cors (2.8.6): Enable cross-origin requests for backend/frontend
+- dotenv (17.4.2): Load environment configurations safely from .env file
+- mongoose (9.9.2): MongoDB object modeling tool
+- @tuya/tuya-connector-nodejs (2.1.2): Interaction with Tuya Smart Cloud API
