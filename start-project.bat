@@ -1,7 +1,7 @@
 @echo off
 title Appliance Energy Profiler - Setup and Run
 echo ============================================================
-echo   Starting Appliance Energy Profiler Server (CSE407)
+echo   Starting Appliance Energy Profiler Server...
 echo ============================================================
 echo.
 

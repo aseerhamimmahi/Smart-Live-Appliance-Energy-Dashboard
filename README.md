@@ -1,6 +1,6 @@
 # Appliance Energy Profiler ⚡
 
-An interactive, real-time energy profiling dashboard for home appliances (specifically tested with a Deep Freezer). This project was built for **CSE407 (Green Computing)** to monitor instantaneous power draw, cumulative energy usage (kWh), operating costs, and device switch control using the **Tuya Smart Home Cloud API** and **MongoDB Atlas**.
+An interactive, real-time energy profiling dashboard for home appliances (specifically tested with a Deep Freezer). This project was built to monitor instantaneous power draw, cumulative energy usage (kWh), operating costs, and device switch control using the **Tuya Smart Home Cloud API** and **MongoDB Atlas**.
 
 ---
 
@@ -84,4 +84,4 @@ TUYA_DEVICE_ID=your_smart_plug_device_id
 
 ## 🛡️ License
 
-This project is built for academic purposes as a midterm project for CSE407.
+This project is open-source and built for green computing energy monitoring.
